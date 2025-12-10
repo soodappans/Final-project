@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Online Classes</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<h1>Welcome to Online Classes</h1>
+<p>Select a course below</p>
+
+<div class="course-container">
+    <% courses.forEach(course => { %>
+        <div class="course-card">
+            <img src="<%= course.img %>" />
+            <h3><%= course.name %></h3>
+            <a href="/course/<%= course.id %>">View Details</a>
+        </div>
+    <% }) %>
+</div>
+
+</body>
+</html>
