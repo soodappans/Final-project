@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        IMAGE_NAME = "your-dockerhub-username/nodejs-app"
+        IMAGE_NAME = "soodappans/nodejs-app"
         DOCKERHUB = credentials('dockerhub-creds')
     }
     stages {
