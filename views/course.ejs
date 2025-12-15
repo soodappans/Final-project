@@ -1,18 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title><%= course.name %></title>
-    <link rel="stylesheet" href="/css/style.css">
+  <meta charset="UTF-8">
+  <title><%= course.name %> | Online Classes</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 
-<h1><%= course.name %></h1>
-<img src="<%= course.img %>" class="banner" />
-<p><%= course.desc %></p>
+  <!-- Hero header with background -->
+  <header class="hero-header">
+    <h1><%= course.name %></h1>
+    <p>Explore the details of this course</p>
+  </header>
 
-<a class="btn" href="/register/<%= course.id %>">Register Now</a>
-<br><br>
-<a href="/">Go Back</a>
+  <!-- Main course detail section -->
+  <main class="course-detail">
+    <div class="course-card-detail">
+      <img src="<%= course.img %>" alt="<%= course.name %> image" class="banner" />
+      <p class="course-desc"><%= course.desc %></p>
+
+      <div class="course-actions">
+        <a class="btn" href="/register/<%= course.id %>">Register Now</a>
+        <a class="back-link" href="/">← Go Back</a>
+      </div>
+    </div>
+  </main>
+
+  <!-- Optional footer -->
+  <footer>
+    <p>&copy; 2025 Online Classes</p>
+  </footer>
 
 </body>
 </html>

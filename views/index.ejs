@@ -6,18 +6,22 @@
 </head>
 <body>
 
-<h1>Welcome to Online Classes</h1>
-<p>Select a course below</p>
+<header class="hero-header">
+    <h1>Welcome to Online Classes</h1>
+    <p>Select a course below</p>
+</header>
 
-<div class="course-container">
-    <% courses.forEach(course => { %>
-        <div class="course-card">
-            <img src="<%= course.img %>" />
-            <h3><%= course.name %></h3>
-            <a href="/course/<%= course.id %>">View Details</a>
-        </div>
-    <% }) %>
-</div>
+<main>
+    <div class="course-container">
+        <% courses.forEach(course => { %>
+            <div class="course-card">
+                <img src="<%= course.img %>" alt="<%= course.name %> image" />
+                <h3><%= course.name %></h3>
+                <a href="/course/<%= course.id %>">View Details</a>
+            </div>
+        <% }) %>
+    </div>
+</main>
 
 </body>
 </html>
