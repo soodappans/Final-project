@@ -2,7 +2,11 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = "soodappans/nodejs-app"
-        DOCKERHUB = credentials('dockerhub-creds')
+        DOCKERHUB = credentials('dockerhub-creds')   // Docker Hub creds
+        EC2_SSH = credentials('ec2-ssh-key')         // EC2 private key stored in Jenkins
+    }
+    triggers {
+        githubPush()   // Trigger build automatically on GitHub push
     }
     stages {
         stage('Checkout') {
@@ -21,10 +25,15 @@ pipeline {
                 sh "docker push $IMAGE_NAME:${BUILD_NUMBER}"
             }
         }
-        stage('Deploy Container') {
+        stage('Deploy to EC2') {
             steps {
-                sh "docker rm -f nodejs-app || true"
-                sh "docker run -d --name nodejs-app -p 3000:3000 $IMAGE_NAME:${BUILD_NUMBER}"
+                // SSH into EC2 and deploy container
+                sh """
+                ssh -i $EC2_SSH ubuntu@<your-ec2-public-ip> \\
+                "docker pull $IMAGE_NAME:${BUILD_NUMBER} && \\
+                 docker rm -f nodejs-app || true && \\
+                 docker run -d --name nodejs-app -p 3000:3000 $IMAGE_NAME:${BUILD_NUMBER}"
+                """
             }
         }
     }
