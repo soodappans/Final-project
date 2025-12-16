@@ -2,8 +2,8 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = "soodappans/nodejs-app"
-        DOCKERHUB = credentials('dockerhub-creds')
-        EC2_HOST = "172.31.14.239"   // replace with your EC2 IP or hostname
+        DOCKERHUB = credentials('dockerhub-creds')   // Docker Hub creds stored in Jenkins
+        EC2_HOST = "172.31.14.239"                   // Docker EC2 private/public IP
     }
     triggers {
         githubPush()
@@ -14,20 +14,23 @@ pipeline {
                 checkout scm
             }
         }
-        stage('Build Docker Image') {
+        stage('Build & Push on Docker EC2') {
             steps {
-                sh "docker build -t $IMAGE_NAME:${BUILD_NUMBER} ."
-                sh "docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest"
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'EC2_KEY')]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no -i $EC2_KEY ubuntu@$EC2_HOST \\
+                    "cd /home/ubuntu/app && \\
+                     git pull && \\
+                     docker build -t $IMAGE_NAME:${BUILD_NUMBER} . && \\
+                     docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest && \\
+                     echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin && \\
+                     docker push $IMAGE_NAME:${BUILD_NUMBER} && \\
+                     docker push $IMAGE_NAME:latest"
+                    """
+                }
             }
         }
-        stage('Push to Docker Hub') {
-            steps {
-                sh "echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin"
-                sh "docker push $IMAGE_NAME:${BUILD_NUMBER}"
-                sh "docker push $IMAGE_NAME:latest"
-            }
-        }
-        stage('Deploy to EC2') {
+        stage('Deploy Container on Docker EC2') {
             steps {
                 withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'EC2_KEY')]) {
                     sh """
