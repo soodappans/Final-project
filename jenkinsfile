@@ -2,11 +2,11 @@ pipeline {
     agent any
     environment {
         IMAGE_NAME = "soodappans/nodejs-app"
-        DOCKERHUB = credentials('dockerhub-creds')   // Docker Hub creds
-        EC2_SSH = credentials('ec2-ssh-key')         // EC2 private key stored in Jenkins
+        DOCKERHUB = credentials('dockerhub-creds')
+        EC2_HOST = "172.31.14.239"   // replace with your EC2 IP or hostname
     }
     triggers {
-        githubPush()   // Trigger build automatically on GitHub push
+        githubPush()
     }
     stages {
         stage('Checkout') {
@@ -17,23 +17,26 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh "docker build -t $IMAGE_NAME:${BUILD_NUMBER} ."
+                sh "docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest"
             }
         }
         stage('Push to Docker Hub') {
             steps {
                 sh "echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin"
                 sh "docker push $IMAGE_NAME:${BUILD_NUMBER}"
+                sh "docker push $IMAGE_NAME:latest"
             }
         }
         stage('Deploy to EC2') {
             steps {
-                // SSH into EC2 and deploy container
-                sh """
-                ssh -i $EC2_SSH ubuntu@<your-ec2-public-ip> \\
-                "docker pull $IMAGE_NAME:${BUILD_NUMBER} && \\
-                 docker rm -f nodejs-app || true && \\
-                 docker run -d --name nodejs-app -p 3000:3000 $IMAGE_NAME:${BUILD_NUMBER}"
-                """
+                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'EC2_KEY')]) {
+                    sh """
+                    ssh -o StrictHostKeyChecking=no -i $EC2_KEY ubuntu@$EC2_HOST \\
+                    "docker pull $IMAGE_NAME:${BUILD_NUMBER} && \\
+                     docker rm -f nodejs-app || true && \\
+                     docker run -d --name nodejs-app -p 3000:3000 $IMAGE_NAME:${BUILD_NUMBER}"
+                    """
+                }
             }
         }
     }
