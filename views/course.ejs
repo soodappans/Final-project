@@ -19,6 +19,9 @@
       <img src="<%= course.img %>" alt="<%= course.name %> image" class="banner" />
       <p class="course-desc"><%= course.desc %></p>
 
+      <!-- Small change: added instructor line -->
+      <p class="course-instructor">Instructor: <%= course.instructor %></p>
+
       <div class="course-actions">
         <a class="btn" href="/register/<%= course.id %>">Register Now</a>
         <a class="back-link" href="/">← Go Back</a>
