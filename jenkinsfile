@@ -1,43 +1,52 @@
 pipeline {
     agent any
+
     environment {
-        IMAGE_NAME = "soodappans/nodejs-app"
-        DOCKERHUB = credentials('dockerhub-creds')   // Docker Hub creds stored in Jenkins
-        EC2_HOST = "172.31.14.239"                   // Docker EC2 private/public IP
+        IMAGE_NAME = "soodappans/nodejs-app"   // Your DockerHub repo
     }
+
     triggers {
-        githubPush()
+        githubPush()   // Auto-trigger on GitHub push
     }
+
     stages {
         stage('Checkout') {
             steps {
+                // Pull code + Dockerfile + Jenkinsfile from GitHub
                 checkout scm
             }
         }
-        stage('Build & Push on Docker EC2') {
+
+        stage('Build Docker Image') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'EC2_KEY')]) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no -i $EC2_KEY ubuntu@$EC2_HOST \\
-                    "cd /home/ubuntu/app && \\
-                     git pull && \\
-                     docker build -t $IMAGE_NAME:${BUILD_NUMBER} . && \\
-                     docker tag $IMAGE_NAME:${BUILD_NUMBER} $IMAGE_NAME:latest && \\
-                     echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin && \\
-                     docker push $IMAGE_NAME:${BUILD_NUMBER} && \\
-                     docker push $IMAGE_NAME:latest"
-                    """
+                script {
+                    // Build image with unique tag (BUILD_NUMBER)
+                    docker.build("${IMAGE_NAME}:${BUILD_NUMBER}")
                 }
             }
         }
-        stage('Deploy Container on Docker EC2') {
+
+        stage('Push to DockerHub') {
             steps {
-                withCredentials([sshUserPrivateKey(credentialsId: 'ec2-ssh-key', keyFileVariable: 'EC2_KEY')]) {
+                script {
+                    // Login to DockerHub using Jenkins credentials
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-creds') {
+                        def app = docker.image("${IMAGE_NAME}:${BUILD_NUMBER}")
+                        // Push both build-specific and latest tags
+                        app.push()
+                        app.push("latest")
+                    }
+                }
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                script {
+                    // Stop old container if exists, run new one
                     sh """
-                    ssh -o StrictHostKeyChecking=no -i $EC2_KEY ubuntu@$EC2_HOST \\
-                    "docker pull $IMAGE_NAME:${BUILD_NUMBER} && \\
-                     docker rm -f nodejs-app || true && \\
-                     docker run -d --name nodejs-app -p 3000:3000 $IMAGE_NAME:${BUILD_NUMBER}"
+                    docker rm -f nodejs-app || true
+                    docker run -d --name nodejs-app -p 3000:3000 ${IMAGE_NAME}:${BUILD_NUMBER}
                     """
                 }
             }
